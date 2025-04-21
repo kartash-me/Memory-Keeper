@@ -1,8 +1,9 @@
-from flask import Flask, render_template, redirect, request, session
+from flask import Flask, redirect, render_template
+from flask_login import LoginManager, login_required, logout_user
+
 from data import db_session
 from data.users import User
-from forms import PhoneStepForm, EmailStepForm, FinalStepForm, LoginForm
-from flask_login import LoginManager, login_user, logout_user, login_required
+from forms import EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm
 
 
 app = Flask(__name__)
@@ -12,6 +13,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 db_session.global_init("db/memory_keeper.db")
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -26,12 +28,19 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    return "this page is currently under development"
+    form = LoginForm()
+    return render_template("login.html", title="Вход", form=form)
 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    return "this page is currently under development"
+    forms = {"0": PhoneStepForm(), "1": EmailStepForm(), "2": FinalStepForm()}
+    form = forms.get("0")
+
+    if form.validate_on_submit():
+        form = forms.get(form.step.data)
+
+    return render_template("register.html", title="Регистрация", form=form)
 
 
 @app.route('/logout')
