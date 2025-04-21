@@ -11,12 +11,19 @@
                 aria-label="Toggle navigation"
                 ><span class="navbar-toggler-icon"></span>
             </div>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="nav nav-pills">
+            <div class="container collapse navbar-collapse" id="navbarNav">
+                <a class="navbar-brand" href="{{ url_for('index') }}">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Логотип">
+                </a>
+                <ul class="nav nav-pills mx-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('index') }}">Главная</a>
+                        <a class="nav-link rounded-pill active" href="{{ url_for('index') }}">Главная</a>
                     </li>
                 </ul>
+                <div class="btn-group gap-2">
+                    <a class="btn btn-primary rounded-pill" href="{{ url_for('register') }}">Зарегистрироваться</a>
+                    <a class="btn border border-dark rounded-pill" href="{{ url_for('login') }}">Войти</a>
+                </div>
             </div>
         </div>
     </nav>
