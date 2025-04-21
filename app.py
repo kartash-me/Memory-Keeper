@@ -1,19 +1,15 @@
-from flask import Flask
+from flask import Flask, render_template
+
 from data import db_session
 
 
 app = Flask(__name__)
-
+db_session.global_init("db/memory_keeper.db")
 
 @app.route("/")
 def index():
-    return "main application page"
-
-
-def db_set():
-    db_session.global_init("db/memory_keeper.db")
+    return render_template("base.html")
 
 
 if __name__ == "__main__":
-    db_set()
     app.run()
