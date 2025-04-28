@@ -1,10 +1,18 @@
-from flask import Flask, redirect, render_template, session
-from flask_login import LoginManager, login_required, logout_user
+from flask import (
+    Flask, redirect, render_template, session,
+    url_for, flash
+)
+from flask_login import (
+    LoginManager, login_user, login_required,
+    logout_user, current_user
+)
 
 from data import db_session
 from data.users import User
-from forms import EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm
-
+from forms import (
+    PhoneStepForm, EmailStepForm,
+    FinalStepForm, LoginForm
+)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "your_secret_key"
@@ -28,28 +36,69 @@ def index():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
     form = LoginForm()
+    if form.validate_on_submit():
+        db = db_session.create_session()
+        user = db.query(User).filter(User.email == form.email.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user)
+            return redirect(url_for("index"))
+        flash("Неверный email или пароль", "error")
+
     return render_template("login.html", title="Вход", form=form)
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if session.get("user_id"):
-        return "data from form has been received"
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
 
+    step = session.get("step", 0)
     forms = [PhoneStepForm(), EmailStepForm(), FinalStepForm()]
-    form = forms[session.get("step", 0)]
+    form = forms[step]
 
     if form.validate_on_submit():
-        session["step"] = session.get("step", 0) + 1
+        # Шаг 0: сохраняем телефон
+        if step == 0:
+            session["number"] = form.number.data
+            session["step"] = 1
+            return redirect(url_for("register"))
 
-        if session["step"] == 3:
-            # здесь должна быть логика добавления пользователя в БД
-            session["user_id"] = 1 # а здесь соответствующий ID
-            session.pop("step")
-            return "data from form has been received"
+        # Шаг 1: сохраняем email
+        if step == 1:
+            session["email"] = form.email.data
+            session["step"] = 2
+            return redirect(url_for("register"))
 
-        form = forms[session["step"]]
+        # Шаг 2: финальная регистрация
+        if step == 2:
+            db = db_session.create_session()
+
+            # Проверяем уникальность email
+            if db.query(User).filter(User.email == session["email"]).first():
+                flash("Пользователь с таким email уже зарегистрирован", "error")
+                return render_template("register.html", title="Регистрация", form=form)
+
+            # Проверяем уникальность номера
+            if db.query(User).filter(User.number == session["number"]).first():
+                flash("Пользователь с таким номером уже зарегистрирован", "error")
+                return render_template("register.html", title="Регистрация", form=form)
+
+            user = User(
+                number=session["number"],
+                email=session["email"],
+                login=form.login.data
+            )
+            user.set_password(form.password.data)
+            db.add(user)
+            db.commit()
+
+            login_user(user)
+            session.clear()
+            return redirect(url_for("index"))
 
     return render_template("register.html", title="Регистрация", form=form)
 
@@ -58,9 +107,8 @@ def register():
 @login_required
 def logout():
     logout_user()
-    session.clear()
-    return redirect("/")
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
