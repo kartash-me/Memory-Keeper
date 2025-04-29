@@ -1,18 +1,10 @@
-from flask import (
-    Flask, redirect, render_template, session,
-    url_for, flash
-)
-from flask_login import (
-    LoginManager, login_user, login_required,
-    logout_user, current_user
-)
+from flask import Flask, flash, redirect, render_template, session, url_for
+from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 
 from data import db_session
 from data.users import User
-from forms import (
-    PhoneStepForm, EmailStepForm,
-    FinalStepForm, LoginForm
-)
+from forms import EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm
+
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "your_secret_key"
@@ -88,9 +80,7 @@ def register():
                 return render_template("register.html", title="Регистрация", form=form)
 
             user = User(
-                number=session["number"],
-                email=session["email"],
-                login=form.login.data
+                number=session["number"], email=session["email"], login=form.login.data
             )
             user.set_password(form.password.data)
             db.add(user)

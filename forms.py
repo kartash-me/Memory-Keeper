@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, HiddenField
+from wtforms import PasswordField, StringField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo
+
 from mega_validators import *
 
 
@@ -13,7 +14,6 @@ class PhoneStepForm(FlaskForm):
             validate_phone_unique
         ]
     )
-    step = HiddenField(default="1")
     submit = SubmitField("Далее")
 
 
@@ -26,7 +26,6 @@ class EmailStepForm(FlaskForm):
             validate_email_unique
         ]
     )
-    step = HiddenField(default="2")
     submit = SubmitField("Далее")
 
 
@@ -51,7 +50,6 @@ class FinalStepForm(FlaskForm):
             EqualTo("password", message="Пароли не совпадают")
         ]
     )
-    step = HiddenField(default="3")
     submit = SubmitField("Зарегистрироваться")
 
 
