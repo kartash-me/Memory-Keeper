@@ -1,12 +1,14 @@
+import re
+
+from wtforms.validators import ValidationError
+
 from data.db_session import create_session
 from data.users import User
-from wtforms.validators import ValidationError
-import re
 
 
 def validate_phone(_, field):
     phone = field.data.strip()
-    cleaned = re.sub(r"[\s()\-\–]", "", phone)
+    cleaned = re.sub(r"[\s()\-–]", "", phone)
 
     if not (cleaned.startswith("+7") or cleaned.startswith("8")):
         raise ValidationError("Номер должен начинаться с +7 или 8")
@@ -51,13 +53,13 @@ def validate_password(_, field):
     keyboard_rows = ["qwertyuiop", "йцукенгшщзхъё", "asdfghjkl", "фывапролджэё", "zxcvbnm", "ячсмитьбю"]
     for row in keyboard_rows:
         for i in range(len(row) - 2):
-            if row[i:i+3] in low:
+            if row[i:i + 3] in low:
                 raise ValidationError("Пароль содержит простую последовательность клавиш")
 
 
 def validate_phone_unique(_, field):
     db = create_session()
-    cleaned = re.sub(r"[\s()\-\–]", "", field.data.strip())
+    cleaned = re.sub(r"[\s()\-–]", "", field.data.strip())
     exists = db.query(User).filter(User.number == cleaned).first()
     if exists:
         raise ValidationError("Пользователь с таким номером уже зарегистрирован")
