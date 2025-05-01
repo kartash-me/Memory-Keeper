@@ -1,6 +1,7 @@
 # GitHub Python .gitignore template
 .vscode/
 db/memory_keeper.db
+media/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

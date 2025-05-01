@@ -1,4 +1,6 @@
-from flask import Flask, flash, redirect, render_template, session, url_for
+import os
+
+from flask import Flask, abort, flash, redirect, render_template, send_from_directory, session, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 
 from data import db_session
@@ -7,6 +9,7 @@ from forms import EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm
 
 
 app = Flask(__name__)
+app.config["MEDIA_URL"] = "media"
 app.config["SECRET_KEY"] = "your_secret_key"
 
 login_manager = LoginManager()
@@ -21,9 +24,19 @@ def load_user(user_id):
     return db.get(User, int(user_id))
 
 
+@app.route("/<user>/<filename>")
+@login_required
+def media(user, filename):
+    if current_user.login == user:
+        directory = str(os.path.join(app.config["MEDIA_URL"], user))
+        return send_from_directory(directory, filename)
+
+    abort(403)
+
+
 @app.route("/")
 def index():
-    return render_template("base.html", title="Memory Keeper")
+    return render_template("promotion/index.html", title="Memory Keeper")
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -40,7 +53,7 @@ def login():
             return redirect(url_for("index"))
         flash("Неверный email или пароль", "error")
 
-    return render_template("login.html", title="Вход", form=form)
+    return render_template("promotion/login.html", title="Вход", form=form)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -72,12 +85,12 @@ def register():
             # Проверяем уникальность email
             if db.query(User).filter(User.email == session["email"]).first():
                 flash("Пользователь с таким email уже зарегистрирован", "error")
-                return render_template("register.html", title="Регистрация", form=form)
+                return render_template("promotion/register.html", title="Регистрация", form=form)
 
             # Проверяем уникальность номера
             if db.query(User).filter(User.number == session["number"]).first():
                 flash("Пользователь с таким номером уже зарегистрирован", "error")
-                return render_template("register.html", title="Регистрация", form=form)
+                return render_template("promotion/register.html", title="Регистрация", form=form)
 
             user = User(
                 number=session["number"], email=session["email"], login=form.login.data
@@ -90,7 +103,7 @@ def register():
             session.clear()
             return redirect(url_for("index"))
 
-    return render_template("register.html", title="Регистрация", form=form)
+    return render_template("promotion/register.html", title="Регистрация", form=form)
 
 
 @app.route("/logout")
@@ -98,6 +111,12 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for("index"))
+
+
+@app.route("/home")
+@login_required
+def home():
+    return render_template("main/home.html", title="Memory Keeper")
 
 
 if __name__ == "__main__":
