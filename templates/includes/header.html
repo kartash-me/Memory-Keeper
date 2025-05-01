@@ -1,16 +1,6 @@
 <header>
     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
         <div class="container">
-            <div
-                class="navbar-toggler"
-                type="button"
-                data-toggle="collapse"
-                data-target="#navbarNav"
-                aria-controls="navbarNav"
-                aria-expanded="false"
-                aria-label="Toggle navigation"
-                ><span class="navbar-toggler-icon"></span>
-            </div>
             <div class="container collapse navbar-collapse" id="navbarNav">
                 <a class="navbar-brand" href="{{ url_for('index') }}">
                     <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Логотип">
@@ -20,10 +10,31 @@
                         <a class="nav-link rounded-pill active" href="{{ url_for('index') }}">Главная</a>
                     </li>
                 </ul>
-                <div class="btn-group gap-2">
-                    <a class="btn btn-primary rounded-pill" href="{{ url_for('register') }}">Зарегистрироваться</a>
-                    <a class="btn border border-dark rounded-pill" href="{{ url_for('login') }}">Войти</a>
-                </div>
+                {% if current_user.is_authenticated %}
+                    <div class="dropdown">
+                        <span class="navbar-text me-2" data-bs-toggle="dropdown">{{ current_user.login }}</span>
+                        <img
+                            src="{{ url_for('static', filename='img/userpic.png') }}"
+                            alt="Аватар"
+                            class="rounded-circle dropdown-toggle"
+                            style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;"
+                            id="userAvatar"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                        />
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userAvatar">
+                            <li><a class="dropdown-item" href="{{ url_for('home') }}">Главная</a></li>
+                            <li><a class="dropdown-item" href="#">Профиль</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Выйти</a></li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <div class="btn-group gap-2">
+                        <a class="btn border border-dark rounded-pill" href="{{ url_for('login') }}">Войти</a>
+                        <a class="btn btn-primary rounded-pill" href="{{ url_for('register') }}">Зарегистрироваться</a>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </nav>
