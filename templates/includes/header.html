@@ -11,6 +11,7 @@
                     </li>
                 </ul>
                 {% if current_user.is_authenticated %}
+                    <a class="btn border border-dark rounded-pill me-3 " href="{{ url_for('home') }}">Главная</a>
                     <div class="dropdown">
                         <span class="navbar-text me-2" data-bs-toggle="dropdown">{{ current_user.login }}</span>
                         <img

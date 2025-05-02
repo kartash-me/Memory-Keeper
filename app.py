@@ -1,7 +1,12 @@
 import os
 
-from flask import Flask, abort, flash, redirect, render_template, send_from_directory, session, url_for
-from flask_login import LoginManager, current_user, login_required, login_user, logout_user
+from flask import (
+    Flask, abort, flash, redirect, render_template, send_from_directory,
+    session, url_for
+)
+from flask_login import (
+    LoginManager, current_user, login_required, login_user, logout_user
+)
 
 from data import db_session
 from data.users import User
@@ -42,7 +47,7 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        return redirect(url_for("home"))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -50,16 +55,16 @@ def login():
         user = db.query(User).filter(User.email == form.email.data).first()
         if user and user.check_password(form.password.data):
             login_user(user)
-            return redirect(url_for("index"))
+            return redirect(url_for("home"))
         flash("Неверный email или пароль", "error")
 
-    return render_template("promotion/login.html", title="Вход", form=form)
+    return render_template("promotion/form.html", title="Авторизация", form=form)
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        return redirect(url_for("home"))
 
     step = session.get("step", 0)
     forms = [PhoneStepForm(), EmailStepForm(), FinalStepForm()]
@@ -85,12 +90,16 @@ def register():
             # Проверяем уникальность email
             if db.query(User).filter(User.email == session["email"]).first():
                 flash("Пользователь с таким email уже зарегистрирован", "error")
-                return render_template("promotion/register.html", title="Регистрация", form=form)
+                return render_template(
+                    "promotion/form.html", title="Регистрация", form=form
+                )
 
             # Проверяем уникальность номера
             if db.query(User).filter(User.number == session["number"]).first():
                 flash("Пользователь с таким номером уже зарегистрирован", "error")
-                return render_template("promotion/register.html", title="Регистрация", form=form)
+                return render_template(
+                    "promotion/form.html", title="Регистрация", form=form
+                )
 
             user = User(
                 number=session["number"], email=session["email"], login=form.login.data
@@ -101,9 +110,9 @@ def register():
 
             login_user(user)
             session.clear()
-            return redirect(url_for("index"))
+            return redirect(url_for("home"))
 
-    return render_template("promotion/register.html", title="Регистрация", form=form)
+    return render_template("promotion/form.html", title="Регистрация", form=form)
 
 
 @app.route("/logout")
