@@ -1,7 +1,12 @@
 import os
 
-from flask import Flask, abort, flash, redirect, render_template, send_from_directory, session, url_for
-from flask_login import LoginManager, current_user, login_required, login_user, logout_user
+from flask import (
+    Flask, abort, flash, redirect, render_template, send_from_directory,
+    session, url_for
+)
+from flask_login import (
+    LoginManager, current_user, login_required, login_user, logout_user
+)
 
 from data import db_session
 from data.users import User
@@ -11,11 +16,43 @@ from forms import EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm
 app = Flask(__name__)
 app.config["MEDIA_URL"] = "media"
 app.config["SECRET_KEY"] = "your_secret_key"
+app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 * 1024
+app.config["ALLOWED_EXTENSIONS"] = [".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".bmp", ".ico"]
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 db_session.global_init("db/memory_keeper.db")
+
+
+def get_avatar_url(user):
+    if user.avatar:
+        return url_for("media", user=user.login, filename=user.avatar)
+    return url_for("static", filename="img/userpic.png")
+
+
+app.jinja_env.globals["avatar"] = get_avatar_url
+
+
+def save(file, user):
+    directory = str(os.path.join(app.config["MEDIA_URL"], user))
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    n = 0
+    filename = file.filename # добавить нормализацию имени файла
+    name, ext = os.path.splitext(filename)
+
+    if ext not in app.config["ALLOWED_EXTENSIONS"]:
+        raise ValueError("Такой файл не поддерживается")
+
+    while os.path.exists(os.path.join(directory, filename)):
+        filename = f"{name}_{n}{ext}"
+        n += 1
+
+    file.save(os.path.join(directory, filename))
+    return filename
 
 
 @login_manager.user_loader
@@ -42,7 +79,7 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        return redirect(url_for("home"))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -50,16 +87,16 @@ def login():
         user = db.query(User).filter(User.email == form.email.data).first()
         if user and user.check_password(form.password.data):
             login_user(user)
-            return redirect(url_for("index"))
+            return redirect(url_for("home"))
         flash("Неверный email или пароль", "error")
 
-    return render_template("promotion/login.html", title="Вход", form=form)
+    return render_template("promotion/form.html", title="Авторизация", form=form)
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        return redirect(url_for("home"))
 
     step = session.get("step", 0)
     forms = [PhoneStepForm(), EmailStepForm(), FinalStepForm()]
@@ -85,12 +122,16 @@ def register():
             # Проверяем уникальность email
             if db.query(User).filter(User.email == session["email"]).first():
                 flash("Пользователь с таким email уже зарегистрирован", "error")
-                return render_template("promotion/register.html", title="Регистрация", form=form)
+                return render_template(
+                    "promotion/form.html", title="Регистрация", form=form
+                )
 
             # Проверяем уникальность номера
             if db.query(User).filter(User.number == session["number"]).first():
                 flash("Пользователь с таким номером уже зарегистрирован", "error")
-                return render_template("promotion/register.html", title="Регистрация", form=form)
+                return render_template(
+                    "promotion/form.html", title="Регистрация", form=form
+                )
 
             user = User(
                 number=session["number"], email=session["email"], login=form.login.data
@@ -101,9 +142,9 @@ def register():
 
             login_user(user)
             session.clear()
-            return redirect(url_for("index"))
+            return redirect(url_for("home"))
 
-    return render_template("promotion/register.html", title="Регистрация", form=form)
+    return render_template("promotion/form.html", title="Регистрация", form=form)
 
 
 @app.route("/logout")
@@ -117,6 +158,12 @@ def logout():
 @login_required
 def home():
     return render_template("main/home.html", title="Memory Keeper")
+
+
+@app.route("/profile")
+@login_required
+def profile():
+    return render_template("main/profile.html", title="Профиль")
 
 
 if __name__ == "__main__":
