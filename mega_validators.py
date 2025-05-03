@@ -1,9 +1,25 @@
 import re
-
 from wtforms.validators import ValidationError
-
 from data.db_session import create_session
 from data.users import User
+
+
+def detect_login_type(identifier: str):
+    identifier = identifier.strip()
+    if re.fullmatch(r"[^@]+@[^@]+\.[^@]+", identifier):
+        return "email"
+    if re.fullmatch(r"\+?[\d\-\(\) ]{10,}", identifier):
+        return "phone"
+    return "login"
+
+
+def validate_login(_, field):
+    login = field.data
+    if len(login) < 4:
+        raise ValidationError("Логин должен содержать минимум 4 символа")
+
+    if not re.fullmatch(r"^[a-zA-Z0-9_-]+$", login):
+        raise ValidationError("Логин может содержать только латинские буквы, цифры и знак подчёркивания")
 
 
 def validate_phone(_, field):

@@ -1,5 +1,5 @@
 import os
-
+import re
 from flask import (
     Flask, abort, flash, redirect, render_template, send_from_directory,
     session, url_for
@@ -7,10 +7,14 @@ from flask import (
 from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user
 )
-
 from data import db_session
+from data.db_session import SqlAlchemyBase
 from data.users import User
-from forms import EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm
+from data.photo import Photo
+from transliterate import translit
+from forms import (
+    EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm, detect_login_type
+)
 
 
 app = Flask(__name__)
@@ -23,6 +27,8 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 db_session.global_init("db/memory_keeper.db")
+print(SqlAlchemyBase.metadata.tables.keys())
+
 
 
 def get_avatar_url(user):
@@ -33,6 +39,14 @@ def get_avatar_url(user):
 
 app.jinja_env.globals["avatar"] = get_avatar_url
 
+def normalize_filename(filename):
+    name, ext = os.path.splitext(filename)
+    name = translit(name, 'ru', reversed=True)
+    name = name.replace(' ', '_')
+    name = re.sub(r'[^\w\-]', '', name)
+
+    return f"{name}{ext}"
+
 
 def save(file, user):
     directory = str(os.path.join(app.config["MEDIA_URL"], user))
@@ -41,7 +55,7 @@ def save(file, user):
         os.makedirs(directory)
 
     n = 0
-    filename = file.filename # добавить нормализацию имени файла
+    filename = normalize_filename(file.filename) # добавить нормализацию имени файла
     name, ext = os.path.splitext(filename)
 
     if ext not in app.config["ALLOWED_EXTENSIONS"]:
@@ -79,18 +93,31 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("home"))
+        return redirect(url_for("index"))
 
     form = LoginForm()
     if form.validate_on_submit():
         db = db_session.create_session()
-        user = db.query(User).filter(User.email == form.email.data).first()
+        identifier = form.identifier.data.strip()
+        login_type = detect_login_type(identifier)
+        user = None
+
+        if login_type == "email":
+            user = db.query(User).filter(User.email == identifier).first()
+        elif login_type == "phone":
+            cleaned = re.sub(r"[\s()\-–]", "", identifier)
+            user = db.query(User).filter(User.number == cleaned).first()
+        elif login_type == "login":
+            user = db.query(User).filter(User.login == identifier).first()
+
         if user and user.check_password(form.password.data):
             login_user(user)
-            return redirect(url_for("home"))
-        flash("Неверный email или пароль", "error")
+            return redirect(url_for("index"))
 
-    return render_template("promotion/form.html", title="Авторизация", form=form)
+        flash("Неверные данные для входа", "error")
+
+    return render_template("promotion/form.html", title="Вход", form=form)
+
 
 
 @app.route("/register", methods=["GET", "POST"])

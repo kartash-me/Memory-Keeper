@@ -1,7 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import PasswordField, StringField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo
-
 from mega_validators import *
 
 
@@ -33,7 +32,8 @@ class FinalStepForm(FlaskForm):
     login = StringField(
         "Логин",
         validators=[
-            DataRequired(message="Пожалуйста, введите логин")
+            DataRequired(message="Пожалуйста, введите логин"),
+            validate_login
         ]
     )
     password = PasswordField(
@@ -54,17 +54,12 @@ class FinalStepForm(FlaskForm):
 
 
 class LoginForm(FlaskForm):
-    email = StringField(
-        "Email",
-        validators=[
-            DataRequired(message="Пожалуйста, введите Email"),
-            Email(message="Введите корректный Email")
-        ]
+    identifier = StringField(
+        "Email / Логин / Телефон",
+        validators=[DataRequired(message="Пожалуйста, введите Email, логин или телефон")]
     )
     password = PasswordField(
         "Пароль",
-        validators=[
-            DataRequired(message="Пожалуйста, введите пароль")
-        ]
+        validators=[DataRequired(message="Пожалуйста, введите пароль")]
     )
     submit = SubmitField("Войти")
