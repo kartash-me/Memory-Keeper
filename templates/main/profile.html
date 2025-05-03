@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div class="avatar">
+        <img class="rounded-circle" src="{{ avatar(current_user) }}" alt="Аватар">
+        <h3>{{ current_user.login }}</h3>
+    </div>
+    <div class="data"></div>
+{% endblock %}

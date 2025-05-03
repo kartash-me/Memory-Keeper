@@ -16,11 +16,43 @@ from forms import EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm
 app = Flask(__name__)
 app.config["MEDIA_URL"] = "media"
 app.config["SECRET_KEY"] = "your_secret_key"
+app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 * 1024
+app.config["ALLOWED_EXTENSIONS"] = [".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".bmp", ".ico"]
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 db_session.global_init("db/memory_keeper.db")
+
+
+def get_avatar_url(user):
+    if user.avatar:
+        return url_for("media", user=user.login, filename=user.avatar)
+    return url_for("static", filename="img/userpic.png")
+
+
+app.jinja_env.globals["avatar"] = get_avatar_url
+
+
+def save(file, user):
+    directory = str(os.path.join(app.config["MEDIA_URL"], user))
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    n = 0
+    filename = file.filename # добавить нормализацию имени файла
+    name, ext = os.path.splitext(filename)
+
+    if ext not in app.config["ALLOWED_EXTENSIONS"]:
+        raise ValueError("Такой файл не поддерживается")
+
+    while os.path.exists(os.path.join(directory, filename)):
+        filename = f"{name}_{n}{ext}"
+        n += 1
+
+    file.save(os.path.join(directory, filename))
+    return filename
 
 
 @login_manager.user_loader
@@ -126,6 +158,12 @@ def logout():
 @login_required
 def home():
     return render_template("main/home.html", title="Memory Keeper")
+
+
+@app.route("/profile")
+@login_required
+def profile():
+    return render_template("main/profile.html", title="Профиль")
 
 
 if __name__ == "__main__":
