@@ -13,6 +13,7 @@ class User(SqlAlchemyBase, UserMixin):
     hashed_password = sa.Column(sa.String, nullable=True)
     login = sa.Column(sa.String, nullable=True)
     number = sa.Column(sa.String, nullable=True)
+    avatar = sa.Column(sa.String, nullable=True)
 
     def set_password(self, password):
         self.hashed_password = generate_password_hash(password)
