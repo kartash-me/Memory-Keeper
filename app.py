@@ -19,14 +19,13 @@ from forms import (
 app = Flask(__name__)
 app.config["MEDIA_URL"] = "media"
 app.config["SECRET_KEY"] = "your_secret_key"
-app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 ** 2
 app.config["ALLOWED_EXTENSIONS"] = [".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".bmp", ".ico"]
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 db_session.global_init("db/memory_keeper.db")
-
 
 
 def get_avatar_url(user):
@@ -37,11 +36,12 @@ def get_avatar_url(user):
 
 app.jinja_env.globals["avatar"] = get_avatar_url
 
+
 def normalize_filename(filename):
     name, ext = os.path.splitext(filename)
-    name = translit(name, 'ru', reversed=True)
-    name = name.replace(' ', '_')
-    name = re.sub(r'[^\w\-]', '', name)
+    name = re.sub(r"[^\w\-]", "", name)
+    name = name.replace(" ", "_")
+    name = translit(name, "ru", reversed=True)
 
     return f"{name}{ext}"
 
@@ -53,7 +53,7 @@ def save(file, user):
         os.makedirs(directory)
 
     n = 0
-    filename = normalize_filename(file.filename) # добавить нормализацию имени файла
+    filename = normalize_filename(file.filename)
     name, ext = os.path.splitext(filename)
 
     if ext not in app.config["ALLOWED_EXTENSIONS"]:
@@ -114,8 +114,7 @@ def login():
 
         flash("Неверные данные для входа", "error")
 
-    return render_template("promotion/form.html", title="Вход", form=form)
-
+    return render_template("promotion/form.html", title="Авторизация", form=form)
 
 
 @app.route("/register", methods=["GET", "POST"])
