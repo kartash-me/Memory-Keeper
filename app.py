@@ -27,7 +27,6 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 db_session.global_init("db/memory_keeper.db")
-print(SqlAlchemyBase.metadata.tables.keys())
 
 
 
