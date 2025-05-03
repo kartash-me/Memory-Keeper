@@ -1,5 +1,7 @@
+import base64
 import os
 import re
+
 from flask import (
     Flask, abort, flash, redirect, render_template, send_from_directory,
     session, url_for
@@ -7,10 +9,10 @@ from flask import (
 from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user
 )
+from transliterate import translit
+
 from data import db_session
 from data.users import User
-from data.photo import Photo
-from transliterate import translit
 from forms import (
     EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm, detect_login_type
 )
@@ -28,13 +30,22 @@ login_manager.init_app(app)
 db_session.global_init("db/memory_keeper.db")
 
 
-def get_avatar_url(user):
+def save_avatar(file, user):
+    encoded_image = base64.b64encode(file.read()).decode("ascii")
+
+    with db_session.create_session() as db:
+        user.avatar = encoded_image
+        db.merge(user)
+        db.commit()
+
+
+def get_avatar(user):
     if user.avatar:
-        return url_for("media", user=user.login, filename=user.avatar)
+        return "data:image/png;base64," + user.avatar
     return url_for("static", filename="img/userpic.png")
 
 
-app.jinja_env.globals["avatar"] = get_avatar_url
+app.jinja_env.globals["avatar"] = get_avatar
 
 
 def normalize_filename(filename):
@@ -47,23 +58,25 @@ def normalize_filename(filename):
 
 
 def save(file, user):
-    directory = str(os.path.join(app.config["MEDIA_URL"], user))
+    directory = str(os.path.join(app.config["MEDIA_URL"], user.id))
 
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     n = 0
     filename = normalize_filename(file.filename)
+    path = os.path.join(directory, filename)
     name, ext = os.path.splitext(filename)
 
     if ext not in app.config["ALLOWED_EXTENSIONS"]:
         raise ValueError("Такой файл не поддерживается")
 
-    while os.path.exists(os.path.join(directory, filename)):
+    while os.path.exists(path):
         filename = f"{name}_{n}{ext}"
+        path = os.path.join(directory, filename)
         n += 1
 
-    file.save(os.path.join(directory, filename))
+    file.save(path)
     return filename
 
 
@@ -76,8 +89,8 @@ def load_user(user_id):
 @app.route("/<user>/<filename>")
 @login_required
 def media(user, filename):
-    if current_user.login == user:
-        directory = str(os.path.join(app.config["MEDIA_URL"], user))
+    if current_user.id == user.id:
+        directory = str(os.path.join(app.config["MEDIA_URL"], user.id))
         return send_from_directory(directory, filename)
 
     abort(403)
@@ -91,14 +104,14 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        return redirect(url_for("home"))
 
     form = LoginForm()
     if form.validate_on_submit():
         db = db_session.create_session()
         identifier = form.identifier.data.strip()
         login_type = detect_login_type(identifier)
-        user = None
+        user: User | None = None
 
         if login_type == "email":
             user = db.query(User).filter(User.email == identifier).first()
@@ -110,7 +123,7 @@ def login():
 
         if user and user.check_password(form.password.data):
             login_user(user)
-            return redirect(url_for("index"))
+            return redirect(url_for("home"))
 
         flash("Неверные данные для входа", "error")
 
@@ -146,20 +159,14 @@ def register():
             # Проверяем уникальность email
             if db.query(User).filter(User.email == session["email"]).first():
                 flash("Пользователь с таким email уже зарегистрирован", "error")
-                return render_template(
-                    "promotion/form.html", title="Регистрация", form=form
-                )
+                return render_template("promotion/form.html", title="Регистрация", form=form)
 
             # Проверяем уникальность номера
             if db.query(User).filter(User.number == session["number"]).first():
                 flash("Пользователь с таким номером уже зарегистрирован", "error")
-                return render_template(
-                    "promotion/form.html", title="Регистрация", form=form
-                )
+                return render_template("promotion/form.html", title="Регистрация", form=form)
 
-            user = User(
-                number=session["number"], email=session["email"], login=form.login.data
-            )
+            user = User(number=session["number"], email=session["email"], login=form.login.data)
             user.set_password(form.password.data)
             db.add(user)
             db.commit()
