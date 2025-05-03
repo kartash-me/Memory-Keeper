@@ -8,7 +8,6 @@ from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user
 )
 from data import db_session
-from data.db_session import SqlAlchemyBase
 from data.users import User
 from data.photo import Photo
 from transliterate import translit
