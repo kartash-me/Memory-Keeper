@@ -15,6 +15,10 @@ class User(SqlAlchemyBase, UserMixin):
     login = sa.Column(sa.String, nullable=True)
     number = sa.Column(sa.String, nullable=True)
     avatar = sa.Column(sa.String, nullable=True)
+    name = sa.Column(sa.String, nullable=True)
+    surname = sa.Column(sa.String, nullable=True)
+    date_of_birth = sa.Column(sa.Date, nullable=True)
+
     photos = relationship("Photo", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password):

@@ -10,11 +10,13 @@ from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user
 )
 from transliterate import translit
+from werkzeug.utils import secure_filename
 
 from data import db_session
 from data.users import User
 from forms import (
-    EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm, detect_login_type
+    AvatarForm, EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm, ProfileForm,
+    detect_login_type
 )
 
 
@@ -64,7 +66,7 @@ def save(file, user):
         os.makedirs(directory)
 
     n = 0
-    filename = normalize_filename(file.filename)
+    filename = secure_filename(normalize_filename(file.filename))
     path = os.path.join(directory, filename)
     name, ext = os.path.splitext(filename)
 
@@ -191,10 +193,28 @@ def home():
     return render_template("main/home.html", title="Memory Keeper")
 
 
-@app.route("/profile")
+@app.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
-    return render_template("main/profile.html", title="Профиль")
+    form = ProfileForm()
+    avatar_form = AvatarForm()
+
+    if form.submit.data:
+        if form.validate_on_submit():
+            form_data, user_data = form.data, current_user.__dict__
+
+            with db_session.create_session() as db:
+                for field in form_data.keys() & user_data.keys():
+                    if form_data[field] is not None:
+                        if form_data[field] != user_data[field] and str(form_data[field]).strip() != "":
+                            setattr(current_user, field, form_data[field])
+
+                db.merge(current_user)
+                db.commit()
+    elif avatar_form.validate_on_submit():
+        save_avatar(avatar_form.avatar.data, current_user)
+
+    return render_template("main/profile.html", title="Профиль", form=form, avatar_form=avatar_form)
 
 
 if __name__ == "__main__":
