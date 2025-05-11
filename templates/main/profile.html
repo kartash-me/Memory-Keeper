@@ -62,12 +62,16 @@
             </div>
         </div>
         <div class="flex-shrink-0 ms-5 stat">
-            <h3>Статистика</h3>
-            <ul>
-                {% for stat in statistics %}
-                    <li>{{ stat }}</li>
-                {% endfor %}
-            </ul>
+            <h3 class="stat">Статистика</h3>
+            <div class="border border-dark rounded-pill text-center">
+                <h6 class="pt-1">Загружено {{ stat["k"] }} фото</h6>
+                <h6>Использовано {{ stat["used_space"] }} из 4ГБ</h6>
+                <progress value="{{ current_user.used_space }}" max="{{ m }}" class="stat progress"></progress>
+            </div>
+            <div class="border border-dark rounded-pill text-center">
+                <h6 class="pt-1">С нами с {{ stat["date"] }}</h6>
+                <h6>{{ stat["days"] | safe }}</h6>
+            </div>
         </div>
     </div>
 {% endblock %}

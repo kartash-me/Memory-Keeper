@@ -29,7 +29,7 @@ h3.avatar {
     margin-top: 10px;
 }
 
-h3.photo {
+h3.photo, h3.stat {
     margin: 30px 0 30px 15px;
 }
 
@@ -77,4 +77,14 @@ h3.photo {
 
 div.stat {
     width: 25%;
+}
+
+div.stat div {
+    border-color: #989898;
+    margin-bottom: 15px;
+}
+
+progress.stat {
+    margin: 0 auto 10px;
+    width: 80%;
 }
