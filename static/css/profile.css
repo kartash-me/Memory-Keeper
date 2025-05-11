@@ -1,0 +1,80 @@
+img.avatar {
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+}
+
+input.avatar {
+    display: none;
+}
+
+h3.avatar {
+    margin: 5px 0 10px 15px;
+}
+
+.btn-danger img {
+    filter: invert(1);
+    width: 27px;
+}
+
+.form-label {
+    margin-left: 2%;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.alert {
+    margin-top: 10px;
+}
+
+h3.photo {
+    margin: 30px 0 30px 15px;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: scale(1.1);
+}
+
+.card-img {
+    width: 200px;
+    height: 100px;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+}
+
+.last {
+    width: 200px;
+    height: 100px;
+    text-decoration: none;
+    background-color: #989898;
+}
+
+.last button {
+    width: 50px;
+    height: 50px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.last button::before {
+    content: ">";
+    font-family: monospace;
+    font-size: 40px;
+    padding: 0 0 3px 2px;
+}
+
+div.stat {
+    width: 25%;
+}

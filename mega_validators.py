@@ -1,15 +1,19 @@
 import re
+
 from wtforms.validators import ValidationError
+
 from data.db_session import create_session
 from data.users import User
 
 
 def detect_login_type(identifier: str):
     identifier = identifier.strip()
+
     if re.fullmatch(r"[^@]+@[^@]+\.[^@]+", identifier):
         return "email"
-    if re.fullmatch(r"\+?[\d\-\(\) ]{10,}", identifier):
+    if re.fullmatch(r"\+?[\d\-() ]{10,}", identifier):
         return "phone"
+
     return "login"
 
 
