@@ -1,10 +1,11 @@
 import base64
+import datetime as dt
 import os
 import re
 
+from PIL import Image
 from flask import (
-    Flask, abort, flash, redirect, render_template, send_from_directory,
-    session, url_for
+    Flask, flash, redirect, render_template, send_from_directory, session, url_for
 )
 from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user
@@ -13,6 +14,7 @@ from transliterate import translit
 from werkzeug.utils import secure_filename
 
 from data import db_session
+from data.photo import Photo
 from data.users import User
 from forms import (
     AvatarForm, EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm, ProfileForm,
@@ -25,6 +27,9 @@ app.config["MEDIA_URL"] = "media"
 app.config["SECRET_KEY"] = "your_secret_key"
 app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 ** 2
 app.config["ALLOWED_EXTENSIONS"] = [".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".bmp", ".ico"]
+app.jinja_env.globals["static"] = static = lambda filename: url_for("static", filename=filename)
+app.jinja_env.globals["media"] = media = lambda filename: url_for("get_photo", filename=filename)
+app.jinja_env.globals["photo"] = photo = lambda filename: url_for("photo_page", filename=filename)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -32,22 +37,27 @@ login_manager.init_app(app)
 db_session.global_init("db/memory_keeper.db")
 
 
-def save_avatar(file, user):
-    encoded_image = base64.b64encode(file.read()).decode("ascii")
-
-    with db_session.create_session() as db:
-        user.avatar = encoded_image
-        db.merge(user)
-        db.commit()
-
-
 def get_avatar(user):
     if user.avatar:
         return "data:image/png;base64," + user.avatar
-    return url_for("static", filename="img/userpic.png")
+    return static("img/avatar.png")
 
 
 app.jinja_env.globals["avatar"] = get_avatar
+
+
+def human_read_format(size):
+    values = ["Б", "КБ", "МБ", "ГБ"]
+    cnt = 0
+
+    while size > 1023:
+        size /= 1024
+        cnt += 1
+
+        if cnt == 3:
+            break
+
+    return f"{round(size)}{values[cnt]}"
 
 
 def normalize_filename(filename):
@@ -57,6 +67,13 @@ def normalize_filename(filename):
     name = translit(name, "ru", reversed=True)
 
     return f"{name}{ext}"
+
+
+def thumbnail(file, path):
+    img = Image.open(file)
+    img.thumbnail((300, 300), Image.Resampling.LANCZOS)
+    tmb_path = "{}_tmb{}".format(*os.path.splitext(path))
+    img.save(tmb_path, quality=100, optimize=True)
 
 
 def save(file, user):
@@ -79,23 +96,20 @@ def save(file, user):
         n += 1
 
     file.save(path)
-    return filename
+    thumbnail(file, path)
+
+    with db_session.create_session() as db:
+        photo_ = Photo(filename=filename, user_id=user.id)
+        size = os.path.getsize(path)
+        current_user.used_space += size
+        db.add(photo_)
+        db.commit()
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    db = db_session.create_session()
-    return db.get(User, int(user_id))
-
-
-@app.route("/<user>/<filename>")
-@login_required
-def media(user, filename):
-    if current_user.id == user.id:
-        directory = str(os.path.join(app.config["MEDIA_URL"], user.id))
-        return send_from_directory(directory, filename)
-
-    abort(403)
+    with db_session.create_session() as db:
+        return db.get(User, int(user_id))
 
 
 @app.route("/")
@@ -110,24 +124,24 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
-        db = db_session.create_session()
-        identifier = form.identifier.data.strip()
-        login_type = detect_login_type(identifier)
-        user: User | None = None
+        with db_session.create_session() as db:
+            identifier = form.identifier.data.strip()
+            login_type = detect_login_type(identifier)
+            user: User | None = None
 
-        if login_type == "email":
-            user = db.query(User).filter(User.email == identifier).first()
-        elif login_type == "phone":
-            cleaned = re.sub(r"[\s()\-–]", "", identifier)
-            user = db.query(User).filter(User.number == cleaned).first()
-        elif login_type == "login":
-            user = db.query(User).filter(User.login == identifier).first()
+            if login_type == "email":
+                user = db.query(User).filter(User.email == identifier).first()
+            elif login_type == "phone":
+                cleaned = re.sub(r"[\s()\-–]", "", identifier)
+                user = db.query(User).filter(User.number == cleaned).first()
+            elif login_type == "login":
+                user = db.query(User).filter(User.login == identifier).first()
 
-        if user and user.check_password(form.password.data):
-            login_user(user)
-            return redirect(url_for("home"))
+            if user and user.check_password(form.password.data):
+                login_user(user)
+                return redirect(url_for("home"))
 
-        flash("Неверные данные для входа", "error")
+            flash("Неверные данные для входа", "error")
 
     return render_template("promotion/form.html", title="Авторизация", form=form)
 
@@ -156,26 +170,29 @@ def register():
 
         # Шаг 2: финальная регистрация
         if step == 2:
-            db = db_session.create_session()
+            with db_session.create_session() as db:
+                # Проверяем уникальность email
+                if db.query(User).filter(User.email == session["email"]).first():
+                    flash("Пользователь с таким email уже зарегистрирован", "error")
+                    return render_template("promotion/form.html", title="Регистрация", form=form)
 
-            # Проверяем уникальность email
-            if db.query(User).filter(User.email == session["email"]).first():
-                flash("Пользователь с таким email уже зарегистрирован", "error")
-                return render_template("promotion/form.html", title="Регистрация", form=form)
+                # Проверяем уникальность номера
+                if db.query(User).filter(User.number == session["number"]).first():
+                    flash("Пользователь с таким номером уже зарегистрирован", "error")
+                    return render_template("promotion/form.html", title="Регистрация", form=form)
 
-            # Проверяем уникальность номера
-            if db.query(User).filter(User.number == session["number"]).first():
-                flash("Пользователь с таким номером уже зарегистрирован", "error")
-                return render_template("promotion/form.html", title="Регистрация", form=form)
-
-            user = User(number=session["number"], email=session["email"], login=form.login.data)
-            user.set_password(form.password.data)
-            db.add(user)
-            db.commit()
-
-            login_user(user)
-            session.clear()
-            return redirect(url_for("home"))
+                user = User(
+                    number=session["number"],
+                    email=session["email"],
+                    login=form.login.data,
+                    date_of_registration=dt.datetime.now()
+                )
+                user.set_password(form.password.data)
+                db.add(user)
+                db.commit()
+                session.clear()
+                login_user(user)
+                return redirect(url_for("home"))
 
     return render_template("promotion/form.html", title="Регистрация", form=form)
 
@@ -193,6 +210,25 @@ def home():
     return render_template("main/home.html", title="Memory Keeper")
 
 
+@app.route("/photos")
+@login_required
+def photos():
+    return "gallery page"
+
+
+@app.route("/photos/<filename>")
+@login_required
+def photo_page(filename):
+    return f"photo {filename} page"
+
+
+@app.route("/photos/<filename>/file")
+@login_required
+def get_photo(filename):
+    directory = str(os.path.join(app.config["MEDIA_URL"], str(current_user.id)))
+    return send_from_directory(directory, filename)
+
+
 @app.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
@@ -203,18 +239,29 @@ def profile():
         if form.validate_on_submit():
             form_data, user_data = form.data, current_user.__dict__
 
-            with db_session.create_session() as db:
-                for field in form_data.keys() & user_data.keys():
-                    if form_data[field] is not None:
-                        if form_data[field] != user_data[field] and str(form_data[field]).strip() != "":
-                            setattr(current_user, field, form_data[field])
-
-                db.merge(current_user)
-                db.commit()
+            for field in form_data.keys() & user_data.keys():
+                if form_data[field] is not None:
+                    if form_data[field] != user_data[field] and str(form_data[field]).strip() != "":
+                        setattr(current_user, field, form_data[field])
     elif avatar_form.validate_on_submit():
-        save_avatar(avatar_form.avatar.data, current_user)
+        encoded_image = base64.b64encode(avatar_form.avatar.data.read()).decode("ascii")
+        current_user.avatar = encoded_image
 
-    return render_template("main/profile.html", title="Профиль", form=form, avatar_form=avatar_form)
+    db = db_session.create_session()
+    db.merge(current_user)
+    db.commit()
+    files = db.query(Photo.filename).filter(Photo.user_id == current_user.id).all()
+    images = [[str(file[0]), "{}_tmb{}".format(*os.path.splitext(str(file[0])))] for file in files[::-1]]
+    statistics = [
+        f"Всего загружено {len(files)} фото",
+        human_read_format(current_user.used_space) + " использовано",
+        "С нами с " + current_user.date_of_registration.strftime("%d %b %Y"),
+        f"Уже {(dt.datetime.now().date() - current_user.date_of_registration).days} дней вместе",
+    ]
+    db.close()
+
+    return render_template("main/profile.html", title="Профиль", form=form, avatar_form=avatar_form,
+                           images=images, statistics=statistics)
 
 
 if __name__ == "__main__":

@@ -86,4 +86,7 @@ class ProfileForm(FlaskForm):
 
 
 class AvatarForm(FlaskForm):
-    avatar = FileField("Аватар")
+    avatar = FileField(
+        "Аватар",
+        render_kw={"accept": "image/*"}
+    )

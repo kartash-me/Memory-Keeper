@@ -18,6 +18,8 @@ class User(SqlAlchemyBase, UserMixin):
     name = sa.Column(sa.String, nullable=True)
     surname = sa.Column(sa.String, nullable=True)
     date_of_birth = sa.Column(sa.Date, nullable=True)
+    used_space = sa.Column(sa.Integer, default=0)
+    date_of_registration = sa.Column(sa.Date)
 
     photos = relationship("Photo", back_populates="user", cascade="all, delete-orphan")
 

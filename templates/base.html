@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+        <link rel="stylesheet" href="{{ static('css/bootstrap.min.css') }}">
         {% block css %}{% endblock %}
         <title>{{ title }}</title>
     </head>
@@ -15,8 +15,8 @@
             </div>
         </main>
         {% include 'includes/footer.html' %}
-        <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}" defer></script>
-        <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}" defer></script>
+        <script src="{{ static('js/bootstrap.min.js') }}" defer></script>
+        <script src="{{ static('js/bootstrap.bundle.min.js') }}" defer></script>
         {% block js %}{% endblock %}
     </body>
 </html>
