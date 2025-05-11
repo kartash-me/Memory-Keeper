@@ -1,10 +1,21 @@
 from flask_wtf import FlaskForm
-from wtforms import DateField, FileField, PasswordField, StringField, SubmitField
+from wtforms import (
+    DateField,
+    FileField,
+    PasswordField,
+    StringField,
+    SubmitField,
+    DateTimeField,
+    HiddenField)
 from wtforms.validators import DataRequired, Email, EqualTo, Optional
 
 from mega_validators import (
-    validate_email_unique, validate_login, validate_password, validate_phone, validate_phone_unique
-)
+    validate_email_unique,
+    validate_login,
+    validate_password,
+    validate_phone,
+    validate_phone_unique,
+    validate_login_unique,)
 
 
 class PhoneStepForm(FlaskForm):
@@ -36,7 +47,8 @@ class FinalStepForm(FlaskForm):
         "Логин",
         validators=[
             DataRequired(message="Пожалуйста, введите логин"),
-            validate_login
+            validate_login,
+            validate_login_unique
         ]
     )
     password = PasswordField(
@@ -59,8 +71,9 @@ class FinalStepForm(FlaskForm):
 class LoginForm(FlaskForm):
     identifier = StringField(
         "Email / Логин / Телефон",
-        validators=[DataRequired(message="Пожалуйста, введите Email, логин или телефон")]
-    )
+        validators=[
+            DataRequired(
+                message="Пожалуйста, введите Email, логин или телефон")])
     password = PasswordField(
         "Пароль",
         validators=[DataRequired(message="Пожалуйста, введите пароль")]
@@ -79,7 +92,8 @@ class ProfileForm(FlaskForm):
         "Логин",
         validators=[
             DataRequired(message="Пожалуйста, введите логин"),
-            validate_login
+            validate_login,
+            validate_login_unique
         ]
     )
     email = StringField("Email")
@@ -92,3 +106,16 @@ class AvatarForm(FlaskForm):
         "Аватар",
         render_kw={"accept": "image/*"}
     )
+
+
+class UploadPhotoForm(FlaskForm):
+    file = FileField("Фото", render_kw={"accept": "image/*"})
+    address = StringField("Адрес", validators=[Optional()])
+    taken_at = DateTimeField("Время съёмки",
+                             format="%Y-%m-%d %H:%M:%S",
+                             validators=[Optional()])
+    description = StringField("Описание", validators=[Optional()])
+    latitude = HiddenField()
+    longitude = HiddenField()
+
+    submit = SubmitField("Готово")

@@ -1,9 +1,17 @@
 import re
 
+from flask_login import current_user
 from wtforms.validators import ValidationError
 
 from data.db_session import create_session
 from data.users import User
+
+
+def normalize_phone(phone: str) -> str:
+    digits = re.sub(r"\D", "", phone)
+    if len(digits) > 10:
+        digits = digits[-10:]
+    return digits
 
 
 def detect_login_type(identifier: str):
@@ -79,9 +87,9 @@ def validate_password(_, field):
 
 def validate_phone_unique(_, field):
     db = create_session()
-    cleaned = re.sub(r"[\s()\-–]", "", field.data.strip())
-    exists = db.query(User).filter(User.number == cleaned).first()
-    if exists:
+    cleaned = normalize_phone(field.data)
+    user = db.query(User).filter(User.number == cleaned).first()
+    if user and (not current_user.is_authenticated or user.id != current_user.id):
         raise ValidationError("Пользователь с таким номером уже зарегистрирован")
 
 
@@ -90,3 +98,10 @@ def validate_email_unique(_, field):
     exists = db.query(User).filter(User.email == field.data.strip()).first()
     if exists:
         raise ValidationError("Пользователь с таким email уже зарегистрирован")
+
+
+def validate_login_unique(_, field):
+    db = create_session()
+    user = db.query(User).filter(User.login == field.data).first()
+    if user and (not current_user.is_authenticated or user.id != current_user.id):
+        raise ValidationError("Пользователь с таким логином уже зарегестрирован")
