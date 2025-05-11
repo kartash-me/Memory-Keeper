@@ -2,7 +2,9 @@ from flask_wtf import FlaskForm
 from wtforms import DateField, FileField, PasswordField, StringField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Optional
 
-from mega_validators import *
+from mega_validators import (
+    validate_email_unique, validate_login, validate_password, validate_phone, validate_phone_unique
+)
 
 
 class PhoneStepForm(FlaskForm):

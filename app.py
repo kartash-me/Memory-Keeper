@@ -3,30 +3,34 @@ import datetime as dt
 import os
 import re
 
-from PIL import Image
 from flask import (
     Flask, flash, redirect, render_template, send_from_directory, session, url_for
 )
 from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user
 )
-from transliterate import translit
 from werkzeug.utils import secure_filename
 
 from data import db_session
 from data.photo import Photo
 from data.users import User
 from forms import (
-    AvatarForm, EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm, ProfileForm,
-    detect_login_type
+    AvatarForm, EmailStepForm, FinalStepForm, LoginForm, PhoneStepForm, ProfileForm
 )
+from functions import (
+    get_avatar, get_days_message, human_read_format, normalize_filename, ru_date, thumbnail
+)
+from mega_validators import detect_login_type
 
 
 app = Flask(__name__)
+
 app.config["MEDIA_URL"] = "media"
 app.config["SECRET_KEY"] = "your_secret_key"
 app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 ** 2
 app.config["ALLOWED_EXTENSIONS"] = [".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".bmp", ".ico"]
+
+app.jinja_env.globals["avatar"] = get_avatar
 app.jinja_env.globals["static"] = static = lambda filename: url_for("static", filename=filename)
 app.jinja_env.globals["media"] = media = lambda filename: url_for("get_photo", filename=filename)
 app.jinja_env.globals["photo"] = photo = lambda filename: url_for("photo_page", filename=filename)
@@ -35,45 +39,6 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 db_session.global_init("db/memory_keeper.db")
-
-
-def get_avatar(user):
-    if user.avatar:
-        return "data:image/png;base64," + user.avatar
-    return static("img/avatar.png")
-
-
-app.jinja_env.globals["avatar"] = get_avatar
-
-
-def human_read_format(size):
-    values = ["Б", "КБ", "МБ", "ГБ"]
-    cnt = 0
-
-    while size > 1023:
-        size /= 1024
-        cnt += 1
-
-        if cnt == 3:
-            break
-
-    return f"{round(size)}{values[cnt]}"
-
-
-def normalize_filename(filename):
-    name, ext = os.path.splitext(filename)
-    name = re.sub(r"[^\w\-]", "", name)
-    name = name.replace(" ", "_")
-    name = translit(name, "ru", reversed=True)
-
-    return f"{name}{ext}"
-
-
-def thumbnail(file, path):
-    img = Image.open(file)
-    img.thumbnail((300, 300), Image.Resampling.LANCZOS)
-    tmb_path = "{}_tmb{}".format(*os.path.splitext(path))
-    img.save(tmb_path, quality=100, optimize=True)
 
 
 def save(file, user):
@@ -96,11 +61,11 @@ def save(file, user):
         n += 1
 
     file.save(path)
-    thumbnail(file, path)
+    tmb_path = thumbnail(path)
 
     with db_session.create_session() as db:
         photo_ = Photo(filename=filename, user_id=user.id)
-        size = os.path.getsize(path)
+        size = os.path.getsize(path) + os.path.getsize(tmb_path)
         current_user.used_space += size
         db.add(photo_)
         db.commit()
@@ -114,7 +79,7 @@ def load_user(user_id):
 
 @app.route("/")
 def index():
-    return render_template("promotion/index.html", title="Memory Keeper")
+    return render_template("promotion/index.html", title="Memory Keeper", e="&#128512;")
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -252,16 +217,17 @@ def profile():
     db.commit()
     files = db.query(Photo.filename).filter(Photo.user_id == current_user.id).all()
     images = [[str(file[0]), "{}_tmb{}".format(*os.path.splitext(str(file[0])))] for file in files[::-1]]
-    statistics = [
-        f"Всего загружено {len(files)} фото",
-        human_read_format(current_user.used_space) + " использовано",
-        "С нами с " + current_user.date_of_registration.strftime("%d %b %Y"),
-        f"Уже {(dt.datetime.now().date() - current_user.date_of_registration).days} дней вместе",
-    ]
+    days = (dt.datetime.now().date() - current_user.date_of_registration).days
+    statistics = {
+        "k": len(files),
+        "used_space": human_read_format(current_user.used_space),
+        "date": ru_date(current_user.date_of_registration),
+        "days": get_days_message(days)
+    }
     db.close()
 
     return render_template("main/profile.html", title="Профиль", form=form, avatar_form=avatar_form,
-                           images=images, statistics=statistics)
+                           images=images, stat=statistics, m=4 * 1024 ** 3)
 
 
 if __name__ == "__main__":
