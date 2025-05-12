@@ -1,3 +1,7 @@
+import base64
+import os
+import datetime as dt
+
 from flask import (
     Flask,
     flash,
@@ -7,6 +11,7 @@ from flask import (
     request,
     send_from_directory,
     session,
+    url_for,
 )
 from flask_login import (
     LoginManager,
@@ -29,24 +34,47 @@ from forms import (
     ProfileForm,
     UploadPhotoForm,
 )
-from functions import *
+from functions import (
+    extract_photo_metadata,
+    get_coords_from_address,
+    get_address_from_coords,
+    human_read_format,
+    get_avatar,
+    normalize_filename,
+    make_preview,
+    ru_date,
+    get_days_message,
+    thumbnail,
+)
+
 from mega_validators import detect_login_type, normalize_phone
 
 
-
 app = Flask(__name__)
+
 app.config["MEDIA_URL"] = "media"
 app.config["SECRET_KEY"] = "your_secret_key"
-app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 ** 2
-app.config["ALLOWED_EXTENSIONS"] = [".jpg", ".jpeg",
-                                    ".png", ".gif", ".svg", ".webp", ".bmp", ".ico"]
+app.config["MAX_CONTENT_LENGTH"] = 128 * 1024**2
+app.config["ALLOWED_EXTENSIONS"] = [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".svg",
+    ".webp",
+    ".bmp",
+    ".ico",
+]
 
 app.jinja_env.globals["static"] = static = lambda filename: url_for(
-    "static", filename=filename)
+    "static", filename=filename
+)
 app.jinja_env.globals["media"] = media = lambda filename: url_for(
-    "get_photo", filename=filename)
+    "get_photo", filename=filename
+)
 app.jinja_env.globals["photo"] = photo = lambda filename: url_for(
-    "photo_page", filename=filename)
+    "photo_page", filename=filename
+)
 app.jinja_env.globals["avatar"] = get_avatar
 
 login_manager = LoginManager()
@@ -55,31 +83,39 @@ login_manager.init_app(app)
 db_session.global_init("db/memory_keeper.db")
 
 
-def save(file, user, *,
-         latitude=None, longitude=None, address=None,
-         timestamp=None, description=None):
+def save(
+    file,
+    user,
+    original_filename="unknown.jpg",
+    latitude=None,
+    longitude=None,
+    address=None,
+    timestamp=None,
+    description=None,
+):
 
     directory = os.path.join(app.config["MEDIA_URL"], str(user.id))
     os.makedirs(directory, exist_ok=True)
 
-    filename = secure_filename(normalize_filename(
-        getattr(file, "filename", "uploaded.jpg")))
+    base_name_for_save, ext_for_save = os.path.splitext(original_filename)
+    if not base_name_for_save.strip():  # Если имя файла (без расширения) пустое
+        base_name_for_save = (
+            f"uploaded_file_{dt.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        )
+
+    filename = f"{base_name_for_save}{ext_for_save}"
     path = os.path.join(directory, filename)
-    name, ext = os.path.splitext(filename)
 
     n = 0
     while os.path.exists(path):
-        filename = f"{name}_{n}{ext}"
+        filename = f"{base_name_for_save}_{n}{ext_for_save}"
         path = os.path.join(directory, filename)
         n += 1
-
-    if hasattr(file, "stream"):
-        file.stream.seek(0)
 
     with open(path, "wb") as dst:
         dst.write(file.read())
 
-    thumbnail(file, path)
+    tmb_path = thumbnail(path)
 
     with db_session.create_session() as db:
         photo_ = Photo(
@@ -89,9 +125,9 @@ def save(file, user, *,
             longitude=longitude,
             address=address,
             timestamp=timestamp,
-            description=description
+            description=description,
         )
-        size = os.path.getsize(path)
+        size = os.path.getsize(path) + os.path.getsize(tmb_path)
         user.used_space += size
         db.add(photo_)
         db.commit()
@@ -131,13 +167,9 @@ def login():
             if user and user.check_password(form.password.data):
                 login_user(user)
                 return redirect(url_for("home"))
-
             flash("Неверные данные для входа", "error")
 
-    return render_template(
-        "promotion/form.html",
-        title="Авторизация",
-        form=form)
+    return render_template("promotion/form.html", title="Авторизация", form=form)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -165,29 +197,11 @@ def register():
         # Шаг 2: финальная регистрация
         if step == 2:
             with db_session.create_session() as db:
-                # Проверяем уникальность email
-                if db.query(User).filter(
-                        User.email == session["email"]).first():
-                    flash(
-                        "Пользователь с таким email уже зарегистрирован",
-                        "error")
-                    return render_template(
-                        "promotion/form.html", title="Регистрация", form=form)
-
-                # Проверяем уникальность номера
-                if db.query(User).filter(
-                        User.number == session["number"]).first():
-                    flash(
-                        "Пользователь с таким номером уже зарегистрирован",
-                        "error")
-                    return render_template(
-                        "promotion/form.html", title="Регистрация", form=form)
-
                 user = User(
                     number=session["number"],
                     email=session["email"],
                     login=form.login.data,
-                    date_of_registration=dt.datetime.now()
+                    date_of_registration=dt.datetime.now(),
                 )
                 user.set_password(form.password.data)
                 db.add(user)
@@ -196,36 +210,40 @@ def register():
                 login_user(user)
                 return redirect(url_for("home"))
 
-    return render_template(
-        "promotion/form.html",
-        title="Регистрация",
-        form=form)
+    return render_template("promotion/form.html", title="Регистрация", form=form)
 
 
-@app.route("/photos_geo")
+@app.route("/photos_geodata")
 @login_required
-def photos_geo():
+def photos_geodata():
     with db_session.create_session() as db:
-        photos = (db.query(Photo)
-                    .filter(Photo.user_id == current_user.id,
-                            Photo.latitude.isnot(None),
-                            Photo.longitude.isnot(None))
-                    .all())
+        photos = (
+            db.query(Photo)
+            .filter(
+                Photo.user_id == current_user.id,
+                Photo.latitude.isnot(None),
+                Photo.longitude.isnot(None),
+            )
+            .all()
+        )
 
         data = []
         for p in photos:
+            assert p.filename is not None
             name, ext = os.path.splitext(p.filename)
             thumb = f"{name}_tmb{ext}"
 
-            data.append({
-                "lat": p.latitude,
-                "lon": p.longitude,
-                "thumb": url_for("get_photo", filename=thumb),
-                "full": url_for("get_photo", filename=p.filename),
-                "address": p.address,
-                "timestamp": p.timestamp.isoformat() if p.timestamp else None,
-                "description": p.description or ""
-            })
+            data.append(
+                {
+                    "lat": p.latitude,
+                    "lon": p.longitude,
+                    "thumb": media(thumb),
+                    "full": media(p.filename),
+                    "address": p.address,
+                    "timestamp": p.timestamp.isoformat() if p.timestamp else None,
+                    "description": p.description or "",
+                }
+            )
 
     return jsonify(data)
 
@@ -237,15 +255,21 @@ def upload_photo():
 
     if request.method == "POST" and form.file.data:
         file = form.file.data
+        original_filename = secure_filename(normalize_filename(file.filename))
 
         preview = make_preview(file)
 
-        tmp_dir = os.path.join("tmp_uploads", str(current_user.id))
+        user_media_dir = os.path.join(app.config["MEDIA_URL"], str(current_user.id))
+        tmp_dir = os.path.join(user_media_dir, "tmp")
+
         os.makedirs(tmp_dir, exist_ok=True)
-        tmp_path = os.path.join(tmp_dir, secure_filename(file.filename))
+        tmp_path = os.path.join(
+            tmp_dir, "temp_upload" + os.path.splitext(original_filename)[1]
+        )
         file.seek(0)
         file.save(tmp_path)
         session["tmp_path"] = tmp_path
+        session["original_filename"] = original_filename
 
         # EXIF-мета
         meta = extract_photo_metadata(tmp_path) or {}
@@ -253,18 +277,17 @@ def upload_photo():
         form.longitude.data = meta.get("longitude")
         form.taken_at.data = meta.get("timestamp")
         form.address.data = get_address_from_coords(
-            meta.get("latitude"),
-            meta.get("longitude")
+            meta.get("latitude"), meta.get("longitude")
         )
 
-        return render_template("main/upload.html",
-                               title="Загрузка фото",
-                               form=form,
-                               preview=preview)
+        return render_template(
+            "main/upload.html", title="Загрузка фото", form=form, preview=preview
+        )
 
     if request.method == "POST" and form.submit.data and not form.file.data:
         tmp_path = session.pop("tmp_path", None)
-        if not tmp_path or not os.path.exists(tmp_path):
+        original_filename = session.pop("original_filename", "uploaded.jpg")
+        if tmp_path is None or not os.path.exists(tmp_path):
             flash("Файл не найден, начните заново", "error")
             return redirect(url_for("upload_photo"))
 
@@ -277,21 +300,21 @@ def upload_photo():
             save(
                 file=f,
                 user=current_user,
+                original_filename=original_filename,
                 latitude=lat,
                 longitude=lon,
                 address=form.address.data,
                 timestamp=form.taken_at.data,
-                description=form.description.data
+                description=form.description.data,
             )
         os.remove(tmp_path)
 
         flash("Фото добавлено!", "success")
         return redirect(url_for("home"))
 
-    return render_template("main/upload.html",
-                           title="Загрузка фото",
-                           form=form,
-                           preview=None)
+    return render_template(
+        "main/upload.html", title="Загрузка фото", form=form, preview=None
+    )
 
 
 @app.route("/logout")
@@ -322,10 +345,7 @@ def photo_page(filename):
 @app.route("/photos/<filename>/file")
 @login_required
 def get_photo(filename):
-    directory = str(
-        os.path.join(
-            app.config["MEDIA_URL"], str(
-                current_user.id)))
+    directory = str(os.path.join(app.config["MEDIA_URL"], str(current_user.id)))
     return send_from_directory(directory, filename)
 
 
@@ -341,27 +361,29 @@ def profile():
 
             for field in form_data.keys() & user_data.keys():
                 if form_data[field] is not None:
-                    if form_data[field] != user_data[field] and str(
-                            form_data[field]).strip() != "":
+                    if (
+                        form_data[field] != user_data[field]
+                        and str(form_data[field]).strip() != ""
+                    ):
                         setattr(current_user, field, form_data[field])
     elif avatar_form.validate_on_submit():
-        encoded_image = base64.b64encode(
-            avatar_form.avatar.data.read()).decode("ascii")
+        encoded_image = base64.b64encode(avatar_form.avatar.data.read()).decode("ascii")
         current_user.avatar = encoded_image
 
     db = db_session.create_session()
     db.merge(current_user)
     db.commit()
-    files = db.query(Photo.filename).filter(
-        Photo.user_id == current_user.id).all()
-    images = [[str(file[0]), "{}_tmb{}".format(
-        *os.path.splitext(str(file[0])))] for file in files[::-1]]
+    files = db.query(Photo.filename).filter(Photo.user_id == current_user.id).all()
+    images = [
+        [str(file[0]), "{}_tmb{}".format(*os.path.splitext(str(file[0])))]
+        for file in files[::-1]
+    ]
     days = (dt.datetime.now().date() - current_user.date_of_registration).days
     statistics = {
         "k": len(files),
         "used_space": human_read_format(current_user.used_space),
         "date": ru_date(current_user.date_of_registration),
-        "days": get_days_message(days)
+        "days": get_days_message(days),
     }
     db.close()
 
@@ -372,7 +394,8 @@ def profile():
         avatar_form=avatar_form,
         images=images,
         stat=statistics,
-        m=4 * 1024 ** 3)
+        m=4 * 1024**3,
+    )
 
 
 if __name__ == "__main__":

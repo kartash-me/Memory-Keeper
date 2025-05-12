@@ -10,10 +10,10 @@ class User(SqlAlchemyBase, UserMixin):
     __tablename__ = "users"
 
     id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
-    email = sa.Column(sa.String, index=True, unique=True, nullable=True)
+    email = sa.Column(sa.String, index=True, unique=True, nullable=False)
     hashed_password = sa.Column(sa.String, nullable=True)
     login = sa.Column(sa.String, unique=True, nullable=False)
-    number = sa.Column(sa.String, unique=True, nullable=True)
+    number = sa.Column(sa.String, unique=True, nullable=False)
     avatar = sa.Column(sa.String, nullable=True)
     name = sa.Column(sa.String, nullable=True)
     surname = sa.Column(sa.String, nullable=True)

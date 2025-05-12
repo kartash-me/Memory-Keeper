@@ -16,7 +16,7 @@ ymaps.ready(init);
 function init () {
     const map = new ymaps.Map("map", { center:[20,0], zoom:2 });
 
-    fetch("{{ url_for('photos_geo') }}")
+    fetch("{{ url_for('photos_geodata') }}")
         .then(r => r.json())
         .then(items => {
             if(!items.length){ return; }
