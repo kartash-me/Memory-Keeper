@@ -11,9 +11,9 @@ class Photo(SqlAlchemyBase):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     address = Column(String, nullable=True)
-    timestamp = Column(DateTime)  # время создания фото
-    filename = Column(String, nullable=False)  # имя файла
+    timestamp = Column(DateTime, nullable=True)
+    filename = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"))  # связь с пользователем
+    user_id = Column(Integer, ForeignKey("users.id"))
 
     user = relationship("User", back_populates="photos")
