@@ -67,8 +67,6 @@ def validate_password(_, field):
     pwd = field.data or ""
     low = pwd.lower()
 
-    if "yandex" not in low:
-        raise ValidationError("Пароль должен содержать слово 'yandex'")
     if pwd.isdigit():
         raise ValidationError("Пароль не может быть просто числом")
     if len(pwd) <= 8:
@@ -79,6 +77,8 @@ def validate_password(_, field):
         raise ValidationError("Пароль должен содержать заглавную букву")
     if not any(c.islower() for c in pwd):
         raise ValidationError("Пароль должен содержать строчную букву")
+    if "yandex" not in low:
+        raise ValidationError("Пароль должен содержать слово 'yandex'")
 
     keyboard_rows = [
         "qwertyuiop",

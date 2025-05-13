@@ -16,8 +16,8 @@ def get_api_key(key_name):
     key = os.environ.get(key_name)
 
     if key is None:
-        if os.path.exists(".env"):
-            load_dotenv(".env")
+        if os.path.exists("template.env"):
+            load_dotenv("template.env")
         else:
             return None
 
@@ -225,3 +225,8 @@ def thumbnail(path):
     tmb_path = "{}_tmb{}".format(*os.path.splitext(path))
     img.save(tmb_path, quality=100, optimize=True)
     return tmb_path
+
+
+print(extract_photo_metadata("20250506_133131.jpg"
+                            ))
+print(get_coords_from_address("Москва"))
