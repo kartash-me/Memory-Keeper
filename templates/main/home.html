@@ -1,4 +1,65 @@
 {% extends 'base.html' %}
+
 {% block content %}
-    <h1>application homepage</h1>
+<div id="map" class="map-container"></div>
+
+<style>
+    .map-container{
+        width:100vw;height:100vh;position:relative;margin:0;padding:0;
+    }
+</style>
+
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+<script type="text/javascript">
+ymaps.ready(init);
+
+function init () {
+    const map = new ymaps.Map("map", { center:[20,0], zoom:2 });
+
+    fetch("{{ url_for('photos_geodata') }}")
+        .then(r => r.json())
+        .then(items => {
+            if(!items.length){ return; }
+
+            const clusterer = new ymaps.Clusterer({
+                preset: 'islands#invertedOrangeClusterIcons'
+            });
+
+            const coordsForBounds = [];
+
+            items.forEach(p => {
+                const placemark = new ymaps.Placemark(
+                    [p.lat, p.lon],
+                    {
+                        balloonContent: `
+                            <div style="text-align:center">
+                                <img src="${p.full}" style="max-width:250px"><br>
+                                <strong>${p.address ?? ""}</strong><br>
+                                ${p.timestamp
+                                   ? new Date(p.timestamp).toLocaleString()
+                                   : ""}<br>
+                                ${p.description}
+                            </div>`
+                    },
+                    {
+                        iconLayout: 'default#image',
+                        iconImageHref: p.thumb,
+                        iconImageSize: [48,48],
+                        iconImageOffset: [-24,-24]
+                    }
+                );
+                clusterer.add(placemark);
+                coordsForBounds.push([p.lat, p.lon]);
+            });
+
+            map.geoObjects.add(clusterer);
+            if (coordsForBounds.length === 1){
+                map.setCenter(coordsForBounds[0], 12);
+            } else {
+                map.setBounds(coordsForBounds, { checkZoomRange:true, zoomMargin:50 });
+            }
+        })
+        .catch(err => console.error("Не смог получить geo-json", err));
+}
+</script>
 {% endblock %}

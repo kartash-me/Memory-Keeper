@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block css %}<link rel="stylesheet" href="{{ static('css/form.css') }}">{% endblock %}
+
+{% block content %}
+<h2 class="form">Загрузка фото</h2>
+
+<form class="form" method="post" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+
+    {# ---------- Шаг 1: выбор файла ---------- #}
+    {% if not preview %}
+        {{ form.file(class="form-control rounded-pill mb-3") }}
+        {% for error in form.file.errors %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endfor %}
+        {{ form.submit(class="btn btn-primary rounded-pill", value="Загрузить") }}
+
+    {# ---------- Шаг 2: редактирование метаданных ---------- #}
+    {% else %}
+        <img src="{{ preview }}" alt="preview" class="img-fluid mb-3" style="max-height:300px">
+
+        {{ form.address(class="form-control rounded-pill mb-3",
+                        placeholder="Адрес") }}
+        {{ form.taken_at(class="form-control rounded-pill mb-3",
+                         placeholder="YYYY-MM-DD HH:MM:SS") }}
+        {{ form.description(class="form-control rounded-pill mb-3",
+                            placeholder="Описание") }}
+
+        {{ form.latitude }}
+        {{ form.longitude }}
+
+        {{ form.submit(class="btn btn-success rounded-pill", value="Готово") }}
+    {% endif %}
+</form>
+{% endblock %}
