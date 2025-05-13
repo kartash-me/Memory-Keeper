@@ -18,21 +18,15 @@ def get_api_key(key_name):
     if key is None:
         if os.path.exists(".env"):
             load_dotenv(".env")
-        elif os.path.exists("template.env"):
-            load_dotenv("template.env")
         else:
             return None
 
         key = os.environ.get(key_name)
-        if key is None:
-            return None
 
     return key
 
 
 GEOCODE_API_KEY = get_api_key("GEOCODE_API_KEY")
-if GEOCODE_API_KEY is None:
-    pass
 
 
 def make_preview(file_storage) -> str:
@@ -114,21 +108,10 @@ def get_address_from_coords(latitude, longitude):
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        geo_objects = (
-            data.get("response", {}).get("GeoObjectCollection", {}).get("featureMember")
-        )
-        if geo_objects:
-            return (
-                geo_objects[0]
-                .get("GeoObject", {})
-                .get("metaDataProperty", {})
-                .get("GeocoderMetaData", {})
-                .get("text")
-            )
-        return None
-    except requests.exceptions.RequestException:
-        return None
-    except KeyError:
+        return data["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"][
+            "metaDataProperty"
+        ]["GeocoderMetaData"]["text"]
+    except (requests.exceptions.RequestException, KeyError, IndexError):
         return None
 
 

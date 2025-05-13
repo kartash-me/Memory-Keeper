@@ -102,6 +102,8 @@ def save(
         base_name_for_save = (
             f"uploaded_file_{dt.datetime.now().strftime('%Y%m%d%H%M%S')}"
         )
+    if ext_for_save not in app.config["ALLOWED_EXTENSIONS"]:
+        raise ValueError("Такой файл не поддерживается")
 
     filename = f"{base_name_for_save}{ext_for_save}"
     path = os.path.join(directory, filename)
@@ -229,7 +231,6 @@ def photos_geodata():
 
         data = []
         for p in photos:
-            assert p.filename is not None
             name, ext = os.path.splitext(p.filename)
             thumb = f"{name}_tmb{ext}"
 
