@@ -225,8 +225,3 @@ def thumbnail(path):
     tmb_path = "{}_tmb{}".format(*os.path.splitext(path))
     img.save(tmb_path, quality=100, optimize=True)
     return tmb_path
-
-
-print(extract_photo_metadata("20250506_133131.jpg"
-                            ))
-print(get_coords_from_address("Москва"))
