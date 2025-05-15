@@ -1,0 +1,17 @@
+.map-container {
+    width: 100%;
+    height: 90vh;
+    position: relative;
+}
+
+#balloon-container {
+    display: none;
+}
+
+.balloon {
+    text-align: center;
+}
+
+.balloon img {
+    max-width: 250px;
+}

@@ -1,22 +1,22 @@
 from flask_wtf import FlaskForm
 from wtforms import (
     DateField,
+    DateTimeField,
     FileField,
+    HiddenField,
     PasswordField,
     StringField,
     SubmitField,
-    DateTimeField,
-    HiddenField,
 )
 from wtforms.validators import DataRequired, Email, EqualTo, Optional
 
 from mega_validators import (
     validate_email_unique,
     validate_login,
+    validate_login_unique,
     validate_password,
     validate_phone,
     validate_phone_unique,
-    validate_login_unique,
 )
 
 
@@ -83,7 +83,7 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Войти")
 
 
-class ProfileForm(FlaskForm):
+class AccountForm(FlaskForm):
     name = StringField("Имя")
     surname = StringField("Фамилия")
     date_of_birth = DateField("Дата рождения", validators=[Optional()])
@@ -97,7 +97,7 @@ class ProfileForm(FlaskForm):
     )
     email = StringField("Email")
     number = StringField("Номер телефона")
-    submit = SubmitField("Сохранить изменения")
+    submit = SubmitField("Сохранить")
 
 
 class AvatarForm(FlaskForm):
@@ -113,5 +113,4 @@ class UploadPhotoForm(FlaskForm):
     description = StringField("Описание", validators=[Optional()])
     latitude = HiddenField()
     longitude = HiddenField()
-
     submit = SubmitField("Готово")

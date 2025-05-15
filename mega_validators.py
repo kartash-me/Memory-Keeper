@@ -115,4 +115,4 @@ def validate_login_unique(_, field):
     with create_session() as db:
         user = db.query(User).filter(User.login == field.data).first()
         if user and (not current_user.is_authenticated or user.id != current_user.id):
-            raise ValidationError("Пользователь с таким логином уже зарегестрирован")
+            raise ValidationError("Пользователь с таким логином уже зарегистрирован")

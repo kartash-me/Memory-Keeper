@@ -14,11 +14,7 @@
                 {% endfor %}
             </div>
         {% endfor %}
-        {% with messages = get_flashed_messages() %}
-            {% for message in messages %}
-                <div class="alert alert-danger" role="alert">{{ message }}</div>
-            {% endfor %}
-        {% endwith %}
+        {{ flashes() }}
         {{ form.submit(class="btn btn-primary rounded-pill") }}
     </form>
 {% endblock %}

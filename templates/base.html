@@ -1,3 +1,10 @@
+{% macro flashes() %}
+    {% with messages = get_flashed_messages() %}
+        {% for message in messages %}
+            <div class="alert alert-danger" role="alert">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+{% endmacro %}
 <!DOCTYPE html>
 <html lang="ru">
     <head>

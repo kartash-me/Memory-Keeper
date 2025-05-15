@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block css %}
+    <link rel="stylesheet" href="{{ static('css/map.css') }}">
+{% endblock %}
+{% block content %}
+    <h1>Карта</h1>
+    <div id="map"
+         class="map-container"
+         data-photos-url="{{ url_for('geodata') }}">
+    </div>
+    <div id="balloon-container">
+        {% include 'includes/balloon.html' %}
+    </div>
+{% endblock %}
+{% block js %}
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+    <script src="{{ static('js/map.js') }}"></script>
+{% endblock %}
