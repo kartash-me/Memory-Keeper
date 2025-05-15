@@ -2,24 +2,27 @@ import sqlalchemy as sa
 import sqlalchemy.orm as orm
 from sqlalchemy.orm import Session
 
+from functions import dotenv
+
 
 SqlAlchemyBase = orm.declarative_base()
 __factory = None
 
 
-def global_init(db_file):
+def global_init():
     global __factory
 
     if __factory:
         return
 
-    if not db_file or not db_file.strip():
-        raise Exception("Необходимо указать файл базы данных.")
-
-    conn_str = f"sqlite:///{db_file.strip()}?check_same_thread=False"
-    print(f"Подключение к базе данных по адресу {conn_str}")
-
-    engine = sa.create_engine(conn_str, echo=False)
+    data = {
+        key: dotenv(key.upper())
+        for key in ["engine", "user", "password", "host", "port", "database"]
+    }
+    db = "{engine}://{user}:{password}@{host}:{port}/{database}?charset=utf8mb4".format(
+        **data
+    )
+    engine = sa.create_engine(db, echo=False)
     __factory = orm.sessionmaker(bind=engine)
 
     from data import __all_models

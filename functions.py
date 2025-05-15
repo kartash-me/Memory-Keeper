@@ -12,21 +12,19 @@ from flask import url_for
 from transliterate import translit
 
 
-def get_api_key(key_name):
-    key = os.environ.get(key_name)
+def dotenv(name):
+    key = os.environ.get(name)
 
     if key is None:
-        if os.path.exists("template.env"):
-            load_dotenv("template.env")
-        else:
-            return None
+        if os.path.exists(".env"):
+            load_dotenv(".env")
 
-        key = os.environ.get(key_name)
+        key = os.environ.get(name)
 
     return key
 
 
-GEOCODE_API_KEY = get_api_key("GEOCODE_API_KEY")
+GEOCODE_API_KEY = dotenv("GEOCODE_API_KEY")
 
 
 def make_preview(file_storage) -> str:
@@ -79,7 +77,7 @@ def extract_photo_metadata(image_path):
                 break
 
         try:
-            return dt.datetime.strptime(dt_str, "%Y:%m:%d %H:%M:%S") if dt_str else None
+            return dt.datetime.strptime(dt_str, "%Y:%m:%d %H:%M:%S")
         except (ValueError, TypeError):
             return None
 
