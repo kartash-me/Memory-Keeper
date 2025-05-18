@@ -1,5 +1,7 @@
 # GitHub Python .gitignore template
 .vscode/
+db/
+media/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

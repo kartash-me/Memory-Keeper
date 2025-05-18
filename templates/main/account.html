@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block css %}
+    <link rel="stylesheet" href="{{ static('css/account.css') }}">
+{% endblock %}
+{% block content %}
+    <div class="d-flex">
+        <div class="flex-shrink-0">
+            <img class="rounded-circle avatar" src="{{ avatar(current_user) }}" alt="Аватар">
+            <h3 class="avatar">{{ current_user.login }}</h3>
+            <form method="post" enctype="multipart/form-data" id="avatar-form" novalidate>
+                {{ avatar_form.hidden_tag() }}
+                {{ avatar_form.avatar(class="avatar", id="avatar-input") }}
+                <button id="avatar-button" class="btn btn-secondary rounded-pill">Сменить аватар</button>
+                <button class="btn btn-danger rounded-pill">Удалить аватар</button>
+                {% for error in avatar_form.avatar.errors %}
+                    <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endfor %}
+            </form>
+        </div>
+        <div class="flex-grow-1 ms-5">
+            <h3 class="d-inline-block">Личные данные</h3>
+            <a class="d-inline-block btn btn-danger rounded-pill float-end" href="{{ url_for('logout') }}">
+                <img src="{{ static('ico/logout.png') }}" alt="">
+                <span>Выйти</span>
+            </a>
+            <form method="post" novalidate>
+                {% set data = current_user.__dict__ %}
+                {{ form.hidden_tag() }}
+                {% for field in form if field.name not in ['submit', 'csrf_token'] %}
+                    <div class="form-group">
+                        {{ field.label(class="form-label") }}
+                        {{ field(class="form-control rounded-pill",
+                                 placeholder=field.label.text,
+                                 value=data[field.name] if data[field.name] else "",
+                                 disabled=field.name in ['email', 'number']) }}
+                        {% for error in field.errors %}
+                            <div class="alert alert-danger" role="alert">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                {{ form.submit(class="btn btn-primary rounded-pill") }}
+            </form>
+        </div>
+    </div>
+    <div class="d-flex">
+        <div class="flex-grow-1">
+            <h3 class="photo">Галерея</h3>
+            <div class="row g-5">
+                {% for image in images %}
+                    {% set file, tmb = image %}
+                    <div class="col-3">
+                        <a class="card" href="{{ photo(file) }}">
+                            <img src="{{ media(tmb) }}" alt="{{ file }}" class="card-img">
+                        </a>
+                    </div>
+                {% endfor %}
+                <div class="col-3">
+                    <a class="card last" href="{{ url_for('gallery') }}">
+                        <button class="btn btn-secondary rounded-circle"></button>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="flex-shrink-0 ms-5 statistics">
+            <h3 class="statistics">Статистика</h3>
+            <div class="border border-dark rounded-pill text-center">
+                <h6 class="pt-1">Загружено {{ statistics["photos"] }} фото</h6>
+                <h6>Использовано {{ statistics["used_space"] }} из 4ГБ</h6>
+                <progress value="{{ current_user.used_space }}" max="{{ max_space }}" class="statistics progress">
+                </progress>
+            </div>
+            <div class="border border-dark rounded-pill text-center">
+                <h6 class="pt-1">С нами с {{ statistics["date"] }}</h6>
+                <h6>{{ statistics["days"] | safe }}</h6>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block js %}
+    <script src="{{ static('js/account.js') }}"></script>
+{% endblock %}

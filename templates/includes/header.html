@@ -1,0 +1,51 @@
+{% macro nav_item(endpoint, text) %}
+  <li class="nav-item">
+    <a class="nav-link rounded-pill {% if active_page == endpoint %}active{% endif %}" 
+       href="{{ url_for(endpoint) }}">{{ text }}</a>
+  </li>
+{% endmacro %}
+<header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
+        <div class="container">
+            <div class="container collapse navbar-collapse" id="navbarNav">
+                <a class="navbar-brand" href="{{ url_for('home') }}">
+                    <img src="{{ static('img/logo.png') }}" alt="Логотип">
+                </a>
+                <ul class="nav nav-pills mx-auto">
+                    {{ nav_item('home', 'Главная') }}
+                    {% if current_user.is_authenticated %}
+                        {{ nav_item('gallery', 'Галерея') }}
+                        {{ nav_item('account', 'Аккаунт') }}
+                    {% endif %}
+                </ul>
+                {% if current_user.is_authenticated %}
+                    <div class="dropdown">
+                        <span class="navbar-text me-2" data-bs-toggle="dropdown" style="cursor: pointer;">
+                            {{ current_user.login }}
+                        </span>
+                        <img
+                            src="{{ avatar(current_user) }}"
+                            alt="Аватар"
+                            class="rounded-circle dropdown-toggle"
+                            style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;"
+                            id="userAvatar"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                        />
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userAvatar">
+                            <li><a class="dropdown-item" href="{{ url_for('gallery') }}">Галерея</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('account') }}">Аккаунт</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Выйти</a></li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <div class="btn-group gap-2">
+                        <a class="btn border border-dark rounded-pill" href="{{ url_for('login') }}">Войти</a>
+                        <a class="btn btn-primary rounded-pill" href="{{ url_for('register') }}">Зарегистрироваться</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+</header>

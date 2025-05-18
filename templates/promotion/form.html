@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block css %}
+    <link rel="stylesheet" href="{{ static('css/form.css') }}">
+{% endblock %}
+{% block content %}
+    <h2 class="form">{{ title }}</h2>
+    <form class="form" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {% for field in form if field.name not in ['submit', 'csrf_token'] %}
+            <div class="form-group">
+                {{ field(class="form-control rounded-pill", placeholder=field.label.text) }}
+                {% for error in field.errors %}
+                    <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        {{ flashes() }}
+        {{ form.submit(class="btn btn-primary rounded-pill") }}
+    </form>
+{% endblock %}
