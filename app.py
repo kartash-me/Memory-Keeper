@@ -1,8 +1,11 @@
 import base64
 import datetime as dt
+import io
 import os
+import zipfile
 
 from flask import (
+    Blueprint,
     Flask,
     flash,
     jsonify,
@@ -10,6 +13,7 @@ from flask import (
     render_template,
     request,
     send_from_directory,
+    send_file,
     session,
     url_for,
 )
@@ -77,6 +81,8 @@ app.jinja_env.globals["photo"] = photo = lambda filename: url_for(
     "photo_page", filename=filename
 )
 app.jinja_env.globals["avatar"] = get_avatar
+
+download_bp = Blueprint("download", __name__)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -277,7 +283,6 @@ def upload():
         session["tmp_path"] = tmp_path
         session["original_filename"] = original_filename
 
-        # EXIF-мета
         meta = extract_photo_metadata(tmp_path) or {}
         form.latitude.data = meta.get("latitude")
         form.longitude.data = meta.get("longitude")
@@ -295,7 +300,7 @@ def upload():
         original_filename = session.pop("original_filename", "uploaded.jpg")
 
         if tmp_path == "" or not os.path.exists(tmp_path):
-            flash("Файл не найден, попробуйте снова", "error")
+            flash("Файл не найден, попробуйте снова", "danger")
             return redirect(url_for("upload"))
 
         lat = form.latitude.data or None
@@ -304,20 +309,22 @@ def upload():
         if form.address.data and (lat is None or lon is None):
             lat, lon = get_coords_from_address(form.address.data)
 
-        with open(tmp_path, "rb") as f:
-            save(
-                file=f,
-                user=current_user,
-                original_filename=original_filename,
-                latitude=lat,
-                longitude=lon,
-                address=form.address.data,
-                timestamp=form.taken_at.data,
-                description=form.description.data,
-            )
-        os.remove(tmp_path)
+        try:
+            with open(tmp_path, "rb") as f:
+                save(
+                    file=f,
+                    user=current_user,
+                    original_filename=original_filename,
+                    latitude=lat,
+                    longitude=lon,
+                    address=form.address.data,
+                    timestamp=form.taken_at.data,
+                    description=form.description.data,
+                )
+            os.remove(tmp_path)
+        except Exception as e:
+            flash(f"Что-то пошло не так: {e}", "danger")
 
-        flash("Фото добавлено!", "success")
         return redirect(url_for("gallery"))
 
     return render_template(
@@ -335,7 +342,14 @@ def logout():
 @app.route("/gallery")
 @login_required
 def gallery():
-    return render_template("main/gallery.html", title="Галерея")
+    with db_session.create_session() as db:
+        files = db.query(Photo.filename).filter(Photo.user_id == current_user.id).all()
+        images = [
+            [str(file[0]), "{}_tmb{}".format(*os.path.splitext(str(file[0])))]
+            for file in files[::-1]
+        ]
+
+    return render_template("main/gallery.html", title="Галерея", images=images)
 
 
 @app.route("/gallery/<filename>")
@@ -349,6 +363,36 @@ def photo_page(filename):
 def get_photo(filename):
     directory = str(os.path.join(app.config["MEDIA_URL"], str(current_user.id)))
     return send_from_directory(directory, filename)
+
+
+@download_bp.route("/download_all_photos")
+@login_required
+def download_all_photos():
+    user_id = current_user.id
+    user_folder = os.path.join(app.config["MEDIA_URL"], str(user_id))
+
+    if not os.path.exists(user_folder):
+        return "Нет загруженных фотографий", 404
+
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(user_folder):
+            for file in files:
+                if not os.path.splitext(file)[0].endswith("_tmb"):
+                    file_path = os.path.join(root, file)
+                    arc_name = os.path.relpath(file_path, user_folder)
+                    zipf.write(file_path, arc_name)
+    memory_file.seek(0)
+
+    return send_file(
+        memory_file,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name="my_photos.zip",
+    )
+
+
+app.register_blueprint(download_bp)
 
 
 @app.route("/account", methods=["GET", "POST"])
@@ -372,14 +416,15 @@ def account():
         encoded_image = base64.b64encode(avatar_form.avatar.data.read()).decode("ascii")
         current_user.avatar = encoded_image
 
-    db = db_session.create_session()
-    db.merge(current_user)
-    db.commit()
-    files = db.query(Photo.filename).filter(Photo.user_id == current_user.id).all()
-    images = [
-        [str(file[0]), "{}_tmb{}".format(*os.path.splitext(str(file[0])))]
-        for file in files[::-1]
-    ]
+    with db_session.create_session() as db:
+        db.merge(current_user)
+        db.commit()
+        files = db.query(Photo.filename).filter(Photo.user_id == current_user.id).all()
+        images = [
+            [str(file[0]), "{}_tmb{}".format(*os.path.splitext(str(file[0])))]
+            for file in files[::-1]
+        ]
+
     days = (dt.datetime.now().date() - current_user.date_of_registration).days
     statistics = {
         "photos": len(files),
@@ -387,7 +432,6 @@ def account():
         "date": ru_date(current_user.date_of_registration),
         "days": get_days_message(days),
     }
-    db.close()
     max_space = 4 * 1024**3
 
     return render_template(

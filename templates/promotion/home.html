@@ -1,4 +1,219 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1>promotion page</h1>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: #1a237e;
+            padding: 5rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid #e0f7fa;
+        }
+
+        .s_container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            color: #165187;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+
+        h3 {
+            color: #3448db;
+            margin: 1.5rem 0;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: #555;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+        }
+
+        .numbered-list {
+            counter-reset: section;
+            margin-left: 1.5rem;
+        }
+
+        .numbered-list li {
+            counter-increment: section;
+            margin-bottom: 1rem;
+            list-style: none;
+        }
+
+        .numbered-list li::before {
+            content: counter(section) ".";
+            color: #3498db;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .s_container {
+                padding: 1rem;
+            }
+
+            .header {
+                padding: 2rem 1rem;
+            }
+        }
+    </style>
+
+</head>
+<body>
+    <header class="header">
+        <h1>Memory Keeper</h1>
+        <p>Ваши Воспоминания Оживают на Интерактивной Карте Мира</p>
+    </header>
+
+    <main class="s_container">
+        <section class="section">
+            <h2>Больше чем хранилище</h2>
+            <p>Memory Keeper — ваш личный атлас жизни, где каждое фото занимает свое место в истории.</p>
+        </section>
+
+        <section class="section">
+            <h2>О нас</h2>
+            <p>Мы все делаем тысячи фотографий, фиксируя самые важные моменты нашей жизни: путешествия, встречи, семейные праздники. Но как часто эти бесценные воспоминания остаются забытыми в папках на компьютере или телефоне? Как вспомнить, где именно был сделан тот невероятный снимок заката или где вы смеялись с друзьями?
+Memory Keeper создан, чтобы вдохнуть жизнь в ваши фотоархивы. Мы помогаем не просто хранить фотографии, а оживлять их, привязывая к местам и событиям, создавая уникальную визуальную историю вашей жизни на интерактивной карте.
+</p>
+        </section>
+
+        <section class="section">
+            <h2>Как это работает</h2>
+            <ol class="numbered-list">
+                <li>Простая Регистрация: Создайте свой аккаунт за считанные секунды.</li>
+                <li>Загрузите Фотографии: Просто перетащите или выберите снимки. Наша система готова к работе!</li>
+                <li>Автоматическая Магия: Memory Keeper автоматически считывает метаданные ваших фото (EXIF), извлекая дату и место съемки.</li>
+                <li>Воспоминания на Карте: Ваши фотографии мгновенно появятся на вашей персональной карте мира, точно в том месте, где они были сделаны.</li>
+                <li>Надежное Хранение: Все ваши данные и фото безопасно хранятся в вашем личном облачном пространстве, доступном только вам.</li>
+            </ol>
+        </section>
+
+        <section class="section">
+            <h2>Преимущества</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>Визуализация истории</h3>
+                    <p>Смотрите, как ваши путешествия и события разворачивались по всему миру.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Автоматизация</h3>
+                    <p>Минимум ручной работы – максимум воспоминаний.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Надежность</h3>
+                    <p>Ваши ценные фото и данные под защитой.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Интерактивность</h3>
+                    <p>Исследуйте свои воспоминания, просто кликая по меткам на карте.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Минимализм и Интуитивность</h3>
+                    <p>Чистый дизайн и понятный интерфейс делают использование Memory Keeper приятным.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Политика конфиденциальности</h2>
+            <p>Мы ценим ваше доверие и стремимся к максимальной прозрачности. Здесь вы можете ознакомиться с условиями использования сервиса и нашей политикой конфиденциальности. </p>
+            <h3>Общие положения</h3>
+            <ul class="numbered-list">
+                <li>Пользователь отвечает за правомерность контента, загружаемого им на сайт.</li>
+                <li>Запрещено загружать материалы, нарушающие законодательство (порнографию, экстремизм, разжигание ненависти).</li>
+                <li>Администрация оставляет за собой право удалять любой контент без предупреждения, если тот нарушает наши правила.</li>
+            </ul>
+
+            <h3>Ответственность</h3>
+            <ul class="numbered-list">
+                <li>Мы не проверяем каждую фотографию вручную и не несем ответственности за противоправное содержание, загруженное пользователями.</li>
+                <li>В случае претензий третьих лиц — ответственность лежит на пользователе.</li>
+                <li>Администрация оставляет за собой право удалять любой контент без предупреждения, если тот нарушает наши правила.</li>
+            </ul>
+
+            <h3>Авторские права</h3>
+            <ul class="numbered-list">
+                <li>Пользователь сохраняет все права на свои изображения, предоставляя нам лишь неисключительную лицензию на хранение и отображение.</li>
+            </ul>
+
+            <h3>Какие данные мы собираем</h3>
+            <ul class="numbered-list">
+                <li>Email, номер телефона, логин, пароли (хранятся в зашифрованном виде).</li>
+                <li>EXIF метаданные загружаемых фотографий (дата, геокоординаты).</li>
+            </ul>
+
+            <h3>Цели обработки</h3>
+            <ul class="numbered-list">
+                <li>Аутентификация и авторизация пользователей.</li>
+                <li>Корректное отображение фото на карте (преобразование координат в адрес).</li>
+                <li>Улучшение сервиса и аналитика анонимизированных данных.</li>
+            </ul>
+
+            <h3>Передача и хранение</h3>
+            <ul class="numbered-list">
+                <li>Данные хранятся на серверах с ограниченным доступом.</li>
+                <li>Мы не передаём персональную информацию третьим лицам без вашего согласия.</li>
+            </ul>
+        </section>
+    </main>
+
+</body>
+</html>
 {% endblock %}
