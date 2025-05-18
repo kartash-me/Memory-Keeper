@@ -23,7 +23,7 @@ def global_init():
         **data
     )
     #db = f"mysql+pymysql://u3120708_kartash:AKartash0505@server284.hosting.reg.ru:3306/u3120708_memory_keeper?charset=utf8mb4"
-    #Это если dotenv не будет работать
+    #Это если dotenv не будет работать на маках почему-то возникает что-то типо такого (1045, "Access denied for user 'commandor'@'5.16.180.177' (using password: YES)")
     engine = sa.create_engine(db, echo=False)
     __factory = orm.sessionmaker(bind=engine)
 
