@@ -22,6 +22,8 @@ def global_init():
     db = "{engine}://{user}:{password}@{host}:{port}/{database}?charset=utf8mb4".format(
         **data
     )
+    #db = f"mysql+pymysql://u3120708_kartash:AKartash0505@server284.hosting.reg.ru:3306/u3120708_memory_keeper?charset=utf8mb4"
+    #Это если dotenv не будет работать
     engine = sa.create_engine(db, echo=False)
     __factory = orm.sessionmaker(bind=engine)
 
