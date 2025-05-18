@@ -33,25 +33,6 @@ h3.photo, h3.statistics {
     margin: 30px 0 30px 15px;
 }
 
-.card {
-    border: none;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    transition: transform 0.3s;
-    cursor: pointer;
-}
-
-.card:hover {
-    transform: scale(1.1);
-}
-
-.card-img {
-    width: 200px;
-    height: 100px;
-    object-fit: cover;
-    display: block;
-    margin: 0 auto;
-}
-
 .last {
     width: 200px;
     height: 100px;

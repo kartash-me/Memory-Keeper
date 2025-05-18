@@ -3,13 +3,29 @@
     <link rel="stylesheet" href="{{ static('css/map.css') }}">
 {% endblock %}
 {% block content %}
-    <h1>Карта</h1>
-    <div id="map"
-         class="map-container"
-         data-photos-url="{{ url_for('geodata') }}">
-    </div>
+    <h1 class="pb-2">Карта фото</h1>
+    <div id="map" class="map-container" data-photos-url="{{ url_for('geodata') }}"></div>
     <div id="balloon-container">
         {% include 'includes/balloon.html' %}
+    </div>
+    <div class="d-flex justify-content-between align-items-center pb-2 pt-3">
+        <h1>Галерея</h1>
+        <div>
+            <a class="btn btn-success rounded-pill me-2" href="{{ url_for('upload') }}">Добавить фото</a>
+            <a class="btn btn-secondary rounded-pill" href="{{ url_for('download.download_all_photos') }}">
+                Скачать все фото
+            </a>
+        </div>
+    </div>
+    <div class="row g-5">
+        {% for image in images %}
+            {% set file, tmb = image %}
+            <div class="col-3">
+                <a class="card" href="{{ photo(file) }}">
+                    <img src="{{ media(tmb) }}" alt="{{ file }}" class="card-img">
+                </a>
+            </div>
+        {% endfor %}
     </div>
 {% endblock %}
 {% block js %}
