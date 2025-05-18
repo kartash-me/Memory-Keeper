@@ -1,0 +1,43 @@
+nav {
+    background-color: #eee;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.3s ease;
+}
+
+nav:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.login {
+    cursor: pointer;
+}
+
+img.login {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: scale(1.1);
+}
+
+.card-img {
+    width: 200px;
+    height: 100px;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+}
+
+.logo {
+    height: 45px;
+    width: auto;
+}
